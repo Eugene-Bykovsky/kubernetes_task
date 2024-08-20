@@ -1,0 +1,18 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: my-app-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: my-app-deployment  # Название Deployment, который будет масштабироваться.
+  minReplicas: 2  # Минимальное количество реплик, поддерживаемое ночью.
+  maxReplicas: 10  # Максимальное количество реплик для пиковой нагрузки.
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 50  # Целевой уровень загрузки CPU для масштабирования.
