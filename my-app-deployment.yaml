@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app-deployment
+  labels:
+    app: my-app
+spec:
+  replicas: 4  # Начальное количество реплик для покрытия пиковой нагрузки.
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app-container
+        image: my-app-image:latest  # Версия приложения.
+        resources:
+          requests:
+            memory: "128Mi"  # Минимальные необходимые ресурсы по памяти.
+            cpu: "0.1"       # Минимальные необходимые ресурсы по CPU после инициализации.
+          limits:
+            memory: "128Mi"  # Ограничение по памяти.
+            cpu: "1"         # Ограничение по CPU для первых запросов и инициализации.
+        readinessProbe:
+          httpGet:
+            path: /healthz   # Путь до health-check приложения.
+            port: 8080
+          initialDelaySeconds: 10  # Ожидание перед первым запуском проверки готовности.
+          periodSeconds: 5
+        livenessProbe:
+          httpGet:
+            path: /healthz   # Путь до health-check приложения.
+            port: 8080
+          initialDelaySeconds: 15  # Ожидание перед запуском проверки.
+          periodSeconds: 20
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - my-app
+              topologyKey: "kubernetes.io/hostname"  # Предпочтение разносить поды по разным узлам.
+      tolerations:
+      - key: "node-role.kubernetes.io/spot"  # Позволяет использовать spot-ноды, если такие есть.
+        operator: "Exists"
+      nodeSelector:
+        cloud.google.com/gke-nodepool: default-pool  # Выбор пула нод.
